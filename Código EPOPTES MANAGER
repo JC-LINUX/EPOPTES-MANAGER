@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# 1. AUTORREQUISITO DE SUDO: Si el usuario no lo ejecutó con sudo, el script se relanza a sí mismo
+# Esto fuerza al sistema operativo a pedir la contraseña de administrador de forma automática.
+if [ "$EUID" -ne 0 ]; then
+  exec sudo "$0" "$@"
+fi
+
+clear
+echo "======================================"
+echo "    PANEL DE CONTROL DE EPOPTES"
+echo "======================================"
+echo "1) Ocultar (Detener Epoptes)"
+echo "2) Mostrar (Restablecer imagen)"
+echo "3) Salir sin hacer nada"
+echo "======================================"
+echo -n "Selecciona una opción [1-3]: "
+read -r OPCION
+
+case $OPCION in
+  1)
+    echo "[*] Deteniendo servicios..."
+    systemctl stop epoptes-client >/dev/null 2>&1
+    killall epoptes-client >/dev/null 2>&1
+    echo "[+] ACCIÓN COMPLETADA: Epoptes se ha cerrado."
+    echo "[*] Volviendo al entorno gráfico en 2 segundos..."
+    sleep 2
+    # Salta automáticamente de vuelta al escritorio visual (TTY7)
+    chvt 7
+    ;;
+  2)
+    echo "[*] Iniciando servicios..."
+    systemctl start epoptes-client >/dev/null 2>&1
+    echo "[+] ACCIÓN COMPLETADA: Imagen restablecida con el profesor."
+    echo "[*] Volviendo al entorno gráfico en 2 segundos..."
+    sleep 2
+    # Salta automáticamente de vuelta al escritorio visual (TTY7)
+    chvt 7
+    ;;
+  3|*)
+    echo "[*] Saliendo del panel..."
+    ;;
+esac
+
+# 2. LIMPIEZA PROFUNDA DE HISTORIAL (TRABAJO EXTRA AUTOMATIZADO):
+# Borra el historial de la sesión actual de root y vacía el archivo físico del usuario real.
+history -c
+if [ -n "$SUDO_USER" ]; then
+  # Vacía el archivo donde se guardan los comandos del usuario que invocó el sudo
+  cat /dev/null > "/home/$SUDO_USER/.bash_history"
+fi
+cat /dev/null > /root/.bash_history
+
+exit 0
